@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Regletas de Fracciones</title>
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --line:#d6dce5;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --accent:#2563eb;
+      --shadow:0 8px 24px rgba(15,23,42,.08);
+      --whole-width:840px;
+      --rod-height:44px;
+      --grid-step:35px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial, Helvetica, sans-serif;background:var(--bg);color:var(--text)}
+    header{padding:18px 22px;background:#eef4ff;border-bottom:1px solid #d9e5ff}
+    h1{margin:0 0 6px;font-size:1.6rem}
+    header p{margin:0;color:#334155;line-height:1.45}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:16px;padding:16px;align-items:start}
+    .panel,.board-wrap{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+    .panel{padding:16px;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+    .board-wrap{padding:14px;overflow:hidden}
+    .toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}
+    .status{padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;color:#334155;font-size:.95rem}
+    .small{font-size:.92rem;color:var(--muted);line-height:1.45}
+    .section-title{margin:0 0 10px;font-size:1rem}
+    .row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center;}
+    button,select,input[type="checkbox"]+label{font:inherit}
+    button{border:1px solid #c7d2fe;background:#fff;color:#1e3a8a;padding:8px 12px;border-radius:10px;cursor:pointer;transition:.18s ease}
+    button:hover{background:#eff6ff}
+    button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    button.primary:hover{filter:brightness(.95)}
+    select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    .board{
+      position:relative;
+      min-height:760px;
+      border:1px dashed #cbd5e1;
+      border-radius:16px;
+      background:
+        linear-gradient(to right, rgba(148,163,184,.12) 1px, transparent 1px) 0 0 / var(--grid-step) 100%,
+        linear-gradient(to bottom, rgba(148,163,184,.07) 1px, transparent 1px) 0 0 / 100% 56px,
+        #ffffff;
+      overflow:hidden;
+    }
+    .whole-guide{
+      position:absolute;left:24px;top:22px;width:var(--whole-width);height:56px;border:2px solid #94a3b8;border-radius:12px;
+      background:linear-gradient(90deg,#f8fafc 0%,#eef2ff 100%);display:flex;align-items:center;justify-content:center;color:#334155;
+      font-weight:700;letter-spacing:.2px
+    }
+    .rod{position:absolute;left:24px;top:100px;height:var(--rod-height);border-radius:8px;border:1px solid rgba(0,0,0,.2);box-shadow:0 4px 10px rgba(15,23,42,.12);cursor:grab;user-select:none;touch-action:none;overflow:hidden}
+    .rod:active{cursor:grabbing}
+    .rod .segments{width:100%;height:100%;display:grid}
+    .rod .segments span{border-right:1px solid rgba(0,0,0,.28)}
+    .rod .segments span:last-child{border-right:none}
+    .rod .text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0f172a;text-shadow:0 1px 0 rgba(255,255,255,.45);pointer-events:none;font-size:14px}
+    .rod.selected{outline:3px solid #11182733}
+
+    .palette-guide{border:1px solid #dbe4f0;border-radius:14px;padding:12px;background:#fbfdff}
+    .rod-library{display:grid;gap:0;border:2px solid #1f2937;overflow:hidden;border-radius:10px;background:#fff;width:100%}
+    .lib-row{display:grid;height:52px;position:relative;border-bottom:2px solid #1f2937}
+    .lib-row:last-child{border-bottom:none}
+    .lib-cell{position:relative;border-right:2px solid rgba(31,41,55,.8);display:flex;align-items:center;justify-content:center;font-weight:700;color:#0f172a;text-shadow:0 1px 0 rgba(255,255,255,.4);cursor:pointer;user-select:none}
+    .lib-cell:last-child{border-right:none}
+    .lib-cell:hover{filter:brightness(1.04)}
+    .lib-cell::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.05);pointer-events:none}
+    .lib-row.unit .lib-cell{font-size:16px}
+    .frac{display:flex;flex-direction:column;align-items:center;line-height:1}
+    .frac .top{font-size:16px}
+    .frac .bar{width:18px;height:2px;background:#111;margin:4px 0}
+    .frac .bottom{font-size:16px}
+
+    .meter{margin-top:12px;border:1px solid #dbe4f0;border-radius:12px;padding:12px;background:#fbfdff}
+    .meter-bar{position:relative;height:20px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:8px 0 6px}
+    .meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#60a5fa,#2563eb);transition:width .2s ease}
+    .legend{font-size:.9rem;color:var(--muted)}
+    .kbd{display:inline-block;border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:1px 6px;font-size:.85rem;color:#334155}
+    .help-list{margin:8px 0 0 18px;padding:0;color:#475569}
+    .help-list li{margin:4px 0}
+
+    @media (max-width:1100px){.layout{grid-template-columns:1fr}.panel{position:static;max-height:none}.board{min-height:720px}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Simulador de regletas de fracciones</h1>
+    <p>A la derecha tienes un panel fijo con todas las regletas disponibles, organizadas como en una tabla de referencia. Haz clic sobre cualquier pieza para crear una copia en el área de comparación y luego arrástrala al lugar que desees.</p>
+  </header>
+
+  <main class="layout">
+    <section class="board-wrap">
+      <div class="toolbar">
+        <div class="status" id="statusText">Haz clic en una regleta del panel derecho para llevar una copia al área de comparación.</div>
+        <div class="small"><strong>Área de comparación:</strong> usa este espacio para formar el entero, construir equivalencias y comparar fracciones.</div>
+      </div>
+      <div class="board" id="board">
+        <div class="whole-guide">Unidad = 1</div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2 class="section-title">Regletas disponibles</h2>
+      <div class="row">
+        <label for="maxDen" class="small">Mostrar hasta denominador:</label>
+        <select id="maxDen">
+          <option value="6">6</option>
+          <option value="8">8</option>
+          <option value="10" selected>10</option>
+          <option value="12">12</option>
+        </select>
+      </div>
+      <div class="row">
+        <button class="primary" id="addWhole">Agregar 1</button>
+        <button id="exampleEq">Ejemplo 1/2 + 1/2</button>
+      </div>
+      <div class="row">
+        <button id="clearBoard">Limpiar tablero</button>
+        <button id="alignBtn">Alinear regletas</button>
+      </div>
+      <div class="row">
+        <input type="checkbox" id="toggleLabels" checked>
+        <label for="toggleLabels">Mostrar etiquetas</label>
+      </div>
+
+      <div class="palette-guide">
+        <div class="small" style="margin-bottom:10px;"><strong>Banco visual:</strong> cada pieza del panel se puede tomar con un clic. El panel se mantiene completo; al usar una pieza, se crea una copia en el tablero.</div>
+        <div class="rod-library" id="rodLibrary"></div>
+      </div>
+
+      <div class="meter">
+        <strong>Composición de la fila activa</strong>
+        <div class="small">Si colocas regletas a una misma altura, el simulador estima la suma de esa fila.</div>
+        <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
+        <div id="meterText" class="legend">Suma estimada: 0</div>
+      </div>
+
+      <div class="small" style="margin-top:14px;"><strong>Cómo usarlo</strong></div>
+      <ul class="help-list small">
+        <li>Haz clic en cualquier pieza del panel derecho.</li>
+        <li>La copia aparece en el tablero y puedes arrastrarla.</li>
+        <li>Coloca varias a la misma altura para comparar equivalencias.</li>
+        <li>Pulsa <span class="kbd">Supr</span> o haz doble clic para eliminar una regleta del tablero.</li>
+      </ul>
+    </aside>
+  </main>
+
+  <script>
+    const board = document.getElementById('board');
+    const rodLibrary = document.getElementById('rodLibrary');
+    const maxDenSelect = document.getElementById('maxDen');
+    const statusText = document.getElementById('statusText');
+    const toggleLabels = document.getElementById('toggleLabels');
+    const meterFill = document.getElementById('meterFill');
+    const meterText = document.getElementById('meterText');
+
+    const WHOLE = 840;
+    let rodCounter = 0;
+    let selectedRod = null;
+
+    const colors = {
+      1:['#1e88ff','#0e6be0'],
+      2:['#ff1a1a','#d91010'],
+      3:['#ff00cc','#d300a9'],
+      4:['#f6e08a','#e6cd6d'],
+      5:['#d9ab77','#bf9060'],
+      6:['#fff700','#e5de00'],
+      7:['#22dbe0','#1abdc1'],
+      8:['#ff00ff','#d900d9'],
+      9:['#ff9800','#e07f00'],
+      10:['#21ff00','#18db00'],
+      11:['#a78bfa','#8b5cf6'],
+      12:['#f9a8d4','#ec4899']
+    };
+
+    function gcd(a,b){ return b ? gcd(b, a % b) : a; }
+    function simplify(n,d){ const g = gcd(n,d); return [n/g, d/g]; }
+    function formatFraction(n,d){ return d === 1 ? String(n) : `${n}/${d}`; }
+    function approxFraction(value, tol=1e-8, maxDen=60){
+      for(let d=1; d<=maxDen; d++){
+        const n = Math.round(value*d);
+        if(Math.abs(value - n/d) < tol){
+          const [sn,sd] = simplify(n,d);
+          return formatFraction(sn,sd);
+        }
+      }
+      return value.toFixed(3);
+    }
+    function gradientFor(index){
+      const [a,b] = colors[index] || ['#93c5fd','#3b82f6'];
+      return `linear-gradient(180deg, ${a}, ${b})`;
+    }
+    function fractionHTML(d){
+      return `<div class="frac"><span class="top">1</span><span class="bar"></span><span class="bottom">${d}</span></div>`;
+    }
+
+    function buildLibrary(maxDen){
+      rodLibrary.innerHTML = '';
+
+      const unitRow = document.createElement('div');
+      unitRow.className = 'lib-row unit';
+      unitRow.style.gridTemplateColumns = '1fr';
+      const unitCell = document.createElement('div');
+      unitCell.className = 'lib-cell';
+      unitCell.style.background = gradientFor(1);
+      unitCell.textContent = '1 UNIDAD';
+      unitCell.title = 'Haz clic para llevar la unidad al tablero';
+      unitCell.addEventListener('click', ()=> createRod(1,1,24,110));
+      unitRow.appendChild(unitCell);
+      rodLibrary.appendChild(unitRow);
+
+      for(let d=2; d<=maxDen; d++){
+        const row = document.createElement('div');
+        row.className = 'lib-row';
+        row.style.gridTemplateColumns = `repeat(${d}, 1fr)`;
+        for(let i=0; i<d; i++){
+          const cell = document.createElement('div');
+          cell.className = 'lib-cell';
+          cell.style.background = gradientFor(d);
+          cell.innerHTML = fractionHTML(d);
+          cell.title = `Haz clic para agregar 1/${d}`;
+          cell.addEventListener('click', ()=> createRod(1,d,24,110 + ((rodCounter+1)%8)*58));
+          row.appendChild(cell);
+        }
+        rodLibrary.appendChild(row);
+      }
+    }
+
+    function createSegments(container, parts, colorIndex){
+      container.style.gridTemplateColumns = `repeat(${parts}, 1fr)`;
+      for(let i=0;i<parts;i++){
+        const seg = document.createElement('span');
+        seg.style.background = gradientFor(colorIndex);
+        container.appendChild(seg);
+      }
+    }
+
+    function createRod(n, d, x=24, y=null){
+      rodCounter += 1;
+      const rod = document.createElement('div');
+      rod.className = 'rod';
+      rod.dataset.id = rodCounter;
+      rod.dataset.n = n;
+      rod.dataset.d = d;
+      rod.dataset.value = String(n/d);
+      const width = WHOLE * n / d;
+      rod.style.width = width + 'px';
+      rod.style.left = x + 'px';
+      rod.style.top = (y ?? (110 + (rodCounter%8)*58)) + 'px';
+
+      const segments = document.createElement('div');
+      segments.className = 'segments';
+      createSegments(segments, n, d);
+      rod.appendChild(segments);
+
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.innerHTML = d === 1 ? '1' : fractionHTML(d);
+      text.style.display = toggleLabels.checked ? 'flex' : 'none';
+      rod.appendChild(text);
+
+      attachRodEvents(rod);
+      board.appendChild(rod);
+      selectRod(rod);
+      updateStatus(`Regleta ${formatFraction(n,d)} agregada desde el panel derecho.`);
+      updateMeter();
+      return rod;
+    }
+
+    function updateStatus(msg){ statusText.textContent = msg; }
+
+    function selectRod(rod){
+      if(selectedRod) selectedRod.classList.remove('selected');
+      selectedRod = rod;
+      if(selectedRod){
+        selectedRod.classList.add('selected');
+        updateStatus(`Seleccionada la regleta ${formatFraction(+rod.dataset.n, +rod.dataset.d)}.`);
+      }
+      updateMeter();
+    }
+
+    function attachRodEvents(rod){
+      rod.addEventListener('pointerdown', startDrag);
+      rod.addEventListener('click', (e)=>{ e.stopPropagation(); selectRod(rod); });
+      rod.addEventListener('dblclick', ()=>{
+        rod.remove();
+        if(selectedRod === rod) selectedRod = null;
+        updateStatus('Regleta eliminada del tablero.');
+        updateMeter();
+      });
+    }
+
+    function startDrag(e){
+      e.preventDefault();
+      const rod = e.currentTarget;
+      selectRod(rod);
+      const rect = rod.getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const offsetY = e.clientY - rect.top;
+
+      function move(ev){
+        let x = ev.clientX - boardRect.left - offsetX;
+        let y = ev.clientY - boardRect.top - offsetY;
+        x = Math.max(0, Math.min(board.clientWidth - rod.offsetWidth, x));
+        y = Math.max(0, Math.min(board.clientHeight - rod.offsetHeight, y));
+        x = Math.round(x / 7) * 7;
+        y = Math.round(y / 7) * 7;
+        rod.style.left = x + 'px';
+        rod.style.top = y + 'px';
+        updateMeter();
+      }
+
+      function up(){
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        snapIfClose(rod);
+        updateMeter();
+      }
+
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    }
+
+    function snapIfClose(activeRod){
+      const rods = [...board.querySelectorAll('.rod')].filter(r => r !== activeRod);
+      const ay = parseFloat(activeRod.style.top);
+      const ax = parseFloat(activeRod.style.left);
+      let best = null;
+      rods.forEach(r => {
+        const ry = parseFloat(r.style.top);
+        const rx = parseFloat(r.style.left);
+        const rw = r.offsetWidth;
+        if(Math.abs(ry - ay) <= 10){
+          const endGap = Math.abs((rx + rw) - ax);
+          if(endGap <= 12){
+            if(!best || endGap < best.gap){ best = {gap:endGap, x:rx + rw, y:ry}; }
+          }
+          const startGap = Math.abs((ax + activeRod.offsetWidth) - rx);
+          if(startGap <= 12){
+            if(!best || startGap < best.gap){ best = {gap:startGap, x:rx - activeRod.offsetWidth, y:ry}; }
+          }
+        }
+      });
+      if(best){
+        activeRod.style.left = best.x + 'px';
+        activeRod.style.top = best.y + 'px';
+      }
+      if(Math.abs(ay - 22) <= 16 && Math.abs(ax - 24) <= 16){
+        activeRod.style.left = '24px';
+        activeRod.style.top = '22px';
+      }
+    }
+
+    function updateMeter(){
+      const target = selectedRod || board.querySelector('.rod');
+      if(!target){
+        meterFill.style.width = '0%';
+        meterText.textContent = 'Suma estimada: 0';
+        return;
+      }
+      const y = parseFloat(target.style.top);
+      const rods = [...board.querySelectorAll('.rod')].filter(r => Math.abs(parseFloat(r.style.top) - y) <= 8);
+      rods.sort((a,b)=> parseFloat(a.style.left) - parseFloat(b.style.left));
+      const total = rods.reduce((sum,r)=> sum + (+r.dataset.value), 0);
+      const percent = Math.min(total * 100, 100);
+      meterFill.style.width = percent + '%';
+      const comparison = total === 1 ? ' = 1 (entero exacto)' : total < 1 ? ' < 1' : ' > 1';
+      meterText.textContent = `Suma estimada: ${approxFraction(total)}${comparison}`;
+    }
+
+    function alignRods(){
+      const rods = [...board.querySelectorAll('.rod')];
+      rods.sort((a,b)=> (+a.dataset.value) - (+b.dataset.value));
+      rods.forEach((rod, i)=>{
+        rod.style.left = '24px';
+        rod.style.top = (100 + i * 56) + 'px';
+      });
+      updateStatus('Las regletas del tablero fueron alineadas a la izquierda.');
+      updateMeter();
+    }
+
+    function clearBoard(){
+      [...board.querySelectorAll('.rod')].forEach(r=>r.remove());
+      selectedRod = null;
+      updateStatus('Tablero limpio. El panel derecho se mantiene completo.');
+      updateMeter();
+    }
+
+    function loadExampleHalf(){
+      clearBoard();
+      createRod(1,2,24,110);
+      createRod(1,2,24 + WHOLE/2,110);
+      updateStatus('Ejemplo cargado: 1/2 + 1/2 = 1.');
+      updateMeter();
+    }
+
+    document.getElementById('addWhole').addEventListener('click', ()=> createRod(1,1,24,110));
+    document.getElementById('exampleEq').addEventListener('click', loadExampleHalf);
+    document.getElementById('clearBoard').addEventListener('click', clearBoard);
+    document.getElementById('alignBtn').addEventListener('click', alignRods);
+
+    toggleLabels.addEventListener('change', ()=>{
+      board.querySelectorAll('.rod .text').forEach(el => el.style.display = toggleLabels.checked ? 'flex' : 'none');
+    });
+
+    maxDenSelect.addEventListener('change', ()=> buildLibrary(+maxDenSelect.value));
+
+    board.addEventListener('click', ()=>{
+      if(selectedRod) selectedRod.classList.remove('selected');
+      selectedRod = null;
+      updateStatus('Sin selección. Puedes tomar otra regleta del panel derecho.');
+      updateMeter();
+    });
+
+    window.addEventListener('keydown', (e)=>{
+      if((e.key === 'Delete' || e.key === 'Backspace') && selectedRod){
+        selectedRod.remove();
+        selectedRod = null;
+        updateStatus('Regleta eliminada del tablero.');
+        updateMeter();
+      }
+    });
+
+    buildLibrary(+maxDenSelect.value);
+    createRod(1,1,24,110);
+    createRod(1,2,24,170);
+    createRod(1,4,24,230);
+    createRod(1,4,24 + WHOLE/4,230);
+    createRod(1,4,24 + 2*WHOLE/4,230);
+    createRod(1,4,24 + 3*WHOLE/4,230);
+    updateStatus('Se cargó un ejemplo inicial. A la derecha tienes todas las regletas disponibles para seguir comparando.');
+    updateMeter();
+  </script>
+</body>
+</html>
