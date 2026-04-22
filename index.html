@@ -226,6 +226,68 @@
     };
 
     function formatFraction(n,d){ return d === 1 ? String(n) : `${n}/${d}`; }
+
+    function gcd(a,b){ return b ? gcd(b, a % b) : a; }
+
+    function simplifyFraction(n,d){
+      const g = gcd(n,d);
+      return { n: n/g, d: d/g };
+    }
+
+    function updateRodGroupLabels(){
+      const rods = Array.from(board.querySelectorAll('.piece[data-kind="rod"]'));
+      const visited = new Set();
+
+      rods.forEach(seed => {
+        if(visited.has(seed)) return;
+
+        const d = Number(seed.dataset.d);
+        const y0 = parseFloat(seed.style.top);
+        const group = [seed];
+        visited.add(seed);
+
+        let changed = true;
+        while(changed){
+          changed = false;
+          for(const rod of rods){
+            if(visited.has(rod)) continue;
+            if(Number(rod.dataset.d) !== d) continue;
+            const ry = parseFloat(rod.style.top);
+            if(Math.abs(ry - y0) > 10) continue;
+
+            const touchesGroup = group.some(g => {
+              const gl = parseFloat(g.style.left);
+              const gr = gl + g.offsetWidth;
+              const rl = parseFloat(rod.style.left);
+              const rr = rl + rod.offsetWidth;
+              return Math.abs(gr - rl) <= 2 || Math.abs(rr - gl) <= 2 || (rl >= gl && rl <= gr) || (gl >= rl && gl <= rr);
+            });
+
+            if(touchesGroup){
+              group.push(rod);
+              visited.add(rod);
+              changed = true;
+            }
+          }
+        }
+
+        group.sort((a,b)=> parseFloat(a.style.left) - parseFloat(b.style.left));
+        const totalNumerator = group.reduce((sum, r) => sum + Number(r.dataset.n), 0);
+        const simp = simplifyFraction(totalNumerator, d);
+
+        group.forEach((r, idx) => {
+          const label = r.querySelector('.piece-label');
+          if(!label) return;
+          label.style.display = toggleLabels.checked ? 'flex' : 'none';
+
+          if(group.length === 1){
+            label.textContent = formatFraction(Number(r.dataset.n), d);
+          } else {
+            label.textContent = idx === 0 ? `${totalNumerator}/${d} = ${formatFraction(simp.n, simp.d)}` : '';
+          }
+        });
+      });
+    }
     function gradientFor(index){
       const pair = colors[index] || ['#93c5fd','#3b82f6'];
       return `linear-gradient(180deg, ${pair[0]}, ${pair[1]})`;
@@ -368,6 +430,7 @@
       attachPieceEvents(rod);
       board.appendChild(rod);
       selectPiece(rod);
+      updateRodGroupLabels();
       updateStatus(`Se agregó la regleta ${formatFraction(n,d)} al tablero.`);
     }
 
@@ -425,8 +488,10 @@
         selectPiece(piece);
       });
       piece.addEventListener('dblclick', ()=>{
+        const wasRod = piece.dataset.kind === 'rod';
         piece.remove();
         if(selectedPiece === piece) selectedPiece = null;
+        if(wasRod) updateRodGroupLabels();
         updateStatus('Pieza eliminada.');
       });
     }
@@ -460,6 +525,7 @@
         window.removeEventListener('pointerup', up);
         if(piece.dataset.kind === 'rod') {
           snapRodIfClose(piece);
+          updateRodGroupLabels();
         } else if(piece.dataset.kind === 'circle') {
           mergeCircleIfClose(piece);
         }
@@ -584,6 +650,7 @@
       board.querySelectorAll('.piece-label').forEach(el => {
         el.style.display = toggleLabels.checked ? 'flex' : 'none';
       });
+      updateRodGroupLabels();
     });
 
     maxDenSelect.addEventListener('change', ()=>{
@@ -600,8 +667,10 @@
 
     window.addEventListener('keydown', (e)=>{
       if((e.key === 'Delete' || e.key === 'Backspace') && selectedPiece){
+        const wasRod = selectedPiece.dataset.kind === 'rod';
         selectedPiece.remove();
         selectedPiece = null;
+        if(wasRod) updateRodGroupLabels();
         updateStatus('Pieza eliminada.');
       }
     });
