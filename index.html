@@ -31,12 +31,10 @@
     .status{padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;color:#334155;font-size:.95rem}
     .small{font-size:.92rem;color:var(--muted);line-height:1.45}
     .section-title{margin:0 0 10px;font-size:1rem}
-    .row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center;}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
     button,select,input[type="checkbox"]+label{font:inherit}
     button{border:1px solid #c7d2fe;background:#fff;color:#1e3a8a;padding:8px 12px;border-radius:10px;cursor:pointer;transition:.18s ease}
     button:hover{background:#eff6ff}
-    button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-    button.primary:hover{filter:brightness(.95)}
     select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
     .board{
       position:relative;
@@ -52,7 +50,7 @@
     .rod{
       position:absolute;
       left:24px;
-      top:100px;
+      top:56px;
       height:var(--rod-height);
       border-radius:0;
       border:1px solid rgba(0,0,0,.45);
@@ -66,15 +64,19 @@
     .rod .segments{width:100%;height:100%;display:grid}
     .rod .segments span{border-right:1px solid rgba(0,0,0,.35)}
     .rod .segments span:last-child{border-right:none}
-    .rod .text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0f172a;text-shadow:0 1px 0 rgba(255,255,255,.45);pointer-events:none;font-size:14px}
+    .rod .text{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:#0f172a;text-shadow:0 1px 0 rgba(255,255,255,.45);
+      pointer-events:none;font-size:14px
+    }
     .rod.selected{outline:3px solid #11182733}
+
     .palette-guide{border:1px solid #dbe4f0;border-radius:14px;padding:12px;background:#fbfdff}
     .rod-library{display:grid;gap:0;border:2px solid #1f2937;overflow:hidden;border-radius:0;background:#fff;width:100%}
     .lib-row{display:grid;height:52px;position:relative;border-bottom:2px solid #1f2937}
     .lib-row:last-child{border-bottom:none}
     .lib-cell{
-      position:relative;
-      border-right:2px solid rgba(31,41,55,.8);
+      position:relative;border-right:2px solid rgba(31,41,55,.8);
       display:flex;align-items:center;justify-content:center;
       font-weight:700;color:#0f172a;text-shadow:0 1px 0 rgba(255,255,255,.4);
       cursor:pointer;user-select:none;border-radius:0;
@@ -87,15 +89,15 @@
     .frac .top{font-size:16px}
     .frac .bar{width:18px;height:2px;background:#111;margin:4px 0}
     .frac .bottom{font-size:16px}
-    .meter{margin-top:12px;border:1px solid #dbe4f0;border-radius:12px;padding:12px;background:#fbfdff}
-    .meter-bar{position:relative;height:20px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:8px 0 6px}
-    .meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#60a5fa,#2563eb);transition:width .2s ease}
-    .legend{font-size:.9rem;color:var(--muted)}
     .kbd{display:inline-block;border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:1px 6px;font-size:.85rem;color:#334155}
     .help-list{margin:8px 0 0 18px;padding:0;color:#475569}
     .help-list li{margin:4px 0}
     footer{padding:8px 18px 18px;color:#64748b;font-size:.9rem;text-align:center}
-    @media (max-width:1100px){.layout{grid-template-columns:1fr}.panel{position:static;max-height:none}.board{min-height:720px}}
+    @media (max-width:1100px){
+      .layout{grid-template-columns:1fr}
+      .panel{position:static;max-height:none}
+      .board{min-height:720px}
+    }
   </style>
 </head>
 <body>
@@ -115,6 +117,7 @@
 
     <aside class="panel">
       <h2 class="section-title">Regletas disponibles</h2>
+
       <div class="row">
         <label for="maxDen" class="small">Mostrar hasta denominador:</label>
         <select id="maxDen">
@@ -124,27 +127,19 @@
           <option value="12">12</option>
         </select>
       </div>
+
       <div class="row">
         <button id="clearBoard">Limpiar tablero</button>
       </div>
+
       <div class="row">
         <input type="checkbox" id="toggleLabels" checked>
         <label for="toggleLabels">Mostrar etiquetas</label>
       </div>
 
-
-      
-      
-      
-
       <div class="palette-guide">
         <div class="small" style="margin-bottom:10px;"><strong>Instrucción:</strong> selecciona una regleta para llevar una copia al área de trabajo.</div>
         <div class="rod-library" id="rodLibrary"></div>
-      </div>
-
-      
-        <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
-        <div id="meterText" class="legend"></div>
       </div>
 
       <div class="small" style="margin-top:14px;"><strong>Cómo usarlo</strong></div>
@@ -165,7 +160,7 @@
     const maxDenSelect = document.getElementById('maxDen');
     const statusText = document.getElementById('statusText');
     const toggleLabels = document.getElementById('toggleLabels');
-            const copyright = document.getElementById('copyright');
+    const copyright = document.getElementById('copyright');
 
     const WHOLE = 840;
     const SNAP_DISTANCE = 22;
@@ -190,20 +185,12 @@
     function gcd(a,b){ return b ? gcd(b, a % b) : a; }
     function simplify(n,d){ const g = gcd(n,d); return [n/g, d/g]; }
     function formatFraction(n,d){ return d === 1 ? String(n) : `${n}/${d}`; }
-    function approxFraction(value, tol=1e-8, maxDen=60){
-      for(let d=1; d<=maxDen; d++){
-        const n = Math.round(value*d);
-        if(Math.abs(value - n/d) < tol){
-          const simp = simplify(n,d);
-          return formatFraction(simp[0], simp[1]);
-        }
-      }
-      return value.toFixed(3);
-    }
+
     function gradientFor(index){
       const pair = colors[index] || ['#93c5fd','#3b82f6'];
       return `linear-gradient(180deg, ${pair[0]}, ${pair[1]})`;
     }
+
     function fractionHTML(d){
       return `<div class="frac"><span class="top">1</span><span class="bar"></span><span class="bottom">${d}</span></div>`;
     }
@@ -214,12 +201,14 @@
       const unitRow = document.createElement('div');
       unitRow.className = 'lib-row unit';
       unitRow.style.gridTemplateColumns = '1fr';
+
       const unitCell = document.createElement('div');
       unitCell.className = 'lib-cell';
       unitCell.style.background = gradientFor(1);
       unitCell.textContent = '1 UNIDAD';
       unitCell.title = 'Haz clic para llevar la unidad al tablero';
       unitCell.addEventListener('click', ()=> createRod(1,1,24,56));
+
       unitRow.appendChild(unitCell);
       rodLibrary.appendChild(unitRow);
 
@@ -227,6 +216,7 @@
         const row = document.createElement('div');
         row.className = 'lib-row';
         row.style.gridTemplateColumns = `repeat(${d}, 1fr)`;
+
         for(let i=0; i<d; i++){
           const cell = document.createElement('div');
           cell.className = 'lib-cell';
@@ -236,6 +226,7 @@
           cell.addEventListener('click', ()=> createRod(1,d,24,56 + ((rodCounter+1)%8)*56));
           row.appendChild(cell);
         }
+
         rodLibrary.appendChild(row);
       }
     }
@@ -251,12 +242,14 @@
 
     function createRod(n, d, x=24, y=56){
       rodCounter += 1;
+
       const rod = document.createElement('div');
       rod.className = 'rod';
       rod.dataset.id = rodCounter;
       rod.dataset.n = n;
       rod.dataset.d = d;
       rod.dataset.value = String(n/d);
+
       const width = WHOLE * n / d;
       rod.style.width = width + 'px';
       rod.style.left = x + 'px';
@@ -280,7 +273,9 @@
       return rod;
     }
 
-    function updateStatus(msg){ statusText.textContent = msg; }
+    function updateStatus(msg){
+      statusText.textContent = msg;
+    }
 
     function selectRod(rod){
       if(selectedRod) selectedRod.classList.remove('selected');
@@ -289,7 +284,7 @@
         selectedRod.classList.add('selected');
         updateStatus(`Seleccionada la regleta ${formatFraction(+rod.dataset.n, +rod.dataset.d)}.`);
       }
-          }
+    }
 
     function attachRodEvents(rod){
       rod.addEventListener('pointerdown', startDrag);
@@ -301,7 +296,7 @@
         rod.remove();
         if(selectedRod === rod) selectedRod = null;
         updateStatus('Regleta eliminada.');
-              });
+      });
     }
 
     function clampRodPosition(rod, x, y){
@@ -314,6 +309,7 @@
       e.preventDefault();
       const rod = e.currentTarget;
       selectRod(rod);
+
       const rect = rod.getBoundingClientRect();
       const boardRect = board.getBoundingClientRect();
       const offsetX = e.clientX - rect.left;
@@ -325,13 +321,13 @@
         const pos = clampRodPosition(rod, x, y);
         rod.style.left = pos.x + 'px';
         rod.style.top = pos.y + 'px';
-              }
+      }
 
       function up(){
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
         snapIfClose(rod);
-              }
+      }
 
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
@@ -351,7 +347,7 @@
     }
 
     function snapIfClose(activeRod){
-      let active = getRodRectData(activeRod);
+      const active = getRodRectData(activeRod);
       const rods = Array.from(board.querySelectorAll('.rod')).filter(r => r !== activeRod);
       let best = null;
 
@@ -393,35 +389,13 @@
       }
     }
 
-          const y = parseFloat(target.style.top);
-      const rods = Array.from(board.querySelectorAll('.rod')).filter(r => Math.abs(parseFloat(r.style.top) - y) <= 10);
-      rods.sort((a,b)=> parseFloat(a.style.left) - parseFloat(b.style.left));
-      const total = rods.reduce((sum,r)=> sum + Number(r.dataset.value), 0);
-      meterFill.style.width = Math.min(total * 100, 100) + '%';
-      const comparison = total === 1 ? ' = 1 (entero exacto)' : total < 1 ? ' < 1' : ' > 1';
-      meterText.textContent = `Suma estimada: ${approxFraction(total)}${comparison}`;
-    }
-
-    function alignRods(){
-      const rods = Array.from(board.querySelectorAll('.rod'));
-      rods.sort((a,b)=> Number(a.dataset.value) - Number(b.dataset.value));
-      rods.forEach((rod, i)=>{
-        rod.style.left = '24px';
-        rod.style.top = (56 + i * 56) + 'px';
-      });
-      updateStatus('Las regletas fueron alineadas a la izquierda.');
-          }
-
     function clearBoard(){
-      Array.from(board.querySelectorAll('.rod')).forEach(r=>r.remove());
+      Array.from(board.querySelectorAll('.rod')).forEach(r => r.remove());
       selectedRod = null;
       updateStatus('Tablero limpio.');
-          }
+    }
 
-    
-    document.getElementById('addWhole').addEventListener('click', ()=> createRod(1,1,24,56));
-        document.getElementById('clearBoard').addEventListener('click', clearBoard);
-    document.getElementById('alignBtn').addEventListener('click', alignRods);
+    document.getElementById('clearBoard').addEventListener('click', clearBoard);
 
     toggleLabels.addEventListener('change', ()=>{
       board.querySelectorAll('.rod .text').forEach(el => {
@@ -429,28 +403,27 @@
       });
     });
 
-    maxDenSelect.addEventListener('change', ()=> buildLibrary(Number(maxDenSelect.value)));
+    maxDenSelect.addEventListener('change', ()=>{
+      buildLibrary(Number(maxDenSelect.value));
+    });
 
     board.addEventListener('click', ()=>{
       if(selectedRod) selectedRod.classList.remove('selected');
       selectedRod = null;
       updateStatus('Sin selección.');
-          });
+    });
 
     window.addEventListener('keydown', (e)=>{
       if((e.key === 'Delete' || e.key === 'Backspace') && selectedRod){
         selectedRod.remove();
         selectedRod = null;
         updateStatus('Regleta eliminada.');
-              }
+      }
     });
 
     copyright.textContent = `© ${new Date().getFullYear()} Aneudy Minier | Simulador de Regletas de Fracciones`;
 
     buildLibrary(Number(maxDenSelect.value));
-    createRod(1,1,24,56);
-    
-    updateStatus('Se cargó un ejemplo inicial con 1, 1/2 y 4 cuartos.');
-      </script>
+  </script>
 </body>
 </html>
