@@ -377,13 +377,12 @@
       unitCell.className = 'circle-cell';
       unitCell.innerHTML = `<div class="circle-icon" style="background:${flatColorFor(1)};"></div>`;
       unitCell.addEventListener('click', ()=>{
-        const existing = Array.from(board.querySelectorAll('.piece[data-kind="circle"]'))
-          .find(c => Number(c.dataset.d) === 1);
-        if(existing){
-          selectPiece(existing);
+        const pos = findPlacementForCircle(1);
+        if(pos.existing){
+          selectPiece(pos.existing);
           updateStatus('Ya existe el círculo de unidad en el tablero.');
         } else {
-          createCircle(1,1,40,56);
+          createCircle(1,1,pos.x,pos.y);
         }
       });
       unitRow.appendChild(unitCell);
@@ -403,17 +402,16 @@
           cell.className = 'circle-cell';
           cell.innerHTML = `<div class="circle-icon" style="background:${sectorBackground(d,1)};"></div>`;
           cell.addEventListener('click', ()=>{
-            const existing = Array.from(board.querySelectorAll('.piece[data-kind="circle"]'))
-              .find(c => Number(c.dataset.d) === d);
-            if(existing){
-              const currentFilled = Number(existing.dataset.filled || 1);
+            const pos = findPlacementForCircle(d);
+            if(pos.existing){
+              const currentFilled = Number(pos.existing.dataset.filled || 1);
               const newFilled = Math.min(d, currentFilled + 1);
-              existing.dataset.filled = String(newFilled);
-              renderCircle(existing);
-              selectPiece(existing);
+              pos.existing.dataset.filled = String(newFilled);
+              renderCircle(pos.existing);
+              selectPiece(pos.existing);
               updateStatus(`El círculo se acumuló a ${newFilled}/${d}.`);
             } else {
-              createCircle(1,d,40,56 + ((pieceCounter+1)%6)*96);
+              createCircle(1,d,pos.x,pos.y);
             }
           });
           row.appendChild(cell);
@@ -503,7 +501,26 @@
       }
     }
 
-    function createCircle(n, d, x=40, y=56){
+
+    function findPlacementForCircle(d){
+      const allCircles = Array.from(board.querySelectorAll('.piece[data-kind="circle"]'))
+        .sort((a,b)=> parseFloat(a.style.top) - parseFloat(b.style.top));
+
+      const sameCircle = allCircles.find(c => Number(c.dataset.d) === d);
+      if(sameCircle){
+        return { x: parseFloat(sameCircle.style.left), y: parseFloat(sameCircle.style.top), existing: sameCircle };
+      }
+
+      if(!allCircles.length){
+        return { x: 40, y: 24, existing: null };
+      }
+
+      const last = allCircles[allCircles.length - 1];
+      const nextY = parseFloat(last.style.top) + last.offsetHeight + 16;
+      return { x: 40, y: nextY, existing: null };
+    }
+
+    function createCircle(n, d, x=40, y=24){
       pieceCounter += 1;
       const circle = document.createElement('div');
       circle.className = 'piece circle-piece';
