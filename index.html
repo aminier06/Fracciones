@@ -102,17 +102,17 @@
     }
     .circle-den{font-weight:700;color:#334155;text-align:center}
     .circle-cell{
-      height:58px;border:1px solid #d7deea;border-radius:10px;
+      height:72px;border:1px solid #d7deea;border-radius:10px;
       display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fbfdff;
     }
     .circle-cell:hover{background:#f3f7ff}
     .circle-icon{
-      width:42px;height:42px;border-radius:50%;border:2px solid rgba(15,23,42,.75);
+      width:52px;height:52px;border-radius:50%;border:2px solid rgba(15,23,42,.75);
       position:relative;box-shadow:0 2px 6px rgba(15,23,42,.08);
       background:rgba(255,255,255,0.4);
     }
     .circle-piece{
-      width:88px;height:88px;border-radius:50%;border:2px solid rgba(15,23,42,.75);
+      width:120px;height:120px;border-radius:50%;border:2px solid rgba(15,23,42,.75);
       box-shadow:0 4px 10px rgba(15,23,42,.12);
       background:rgba(255,255,255,0.4);
       overflow:hidden;
@@ -237,10 +237,11 @@
     function fractionHTML(d){
       return `<div class="frac"><span class="top">1</span><span class="bar"></span><span class="bottom">${d}</span></div>`;
     }
-    function sectorBackground(d){
+    function sectorBackground(d, filled=1){
       const deg = 360 / d;
       const color = flatColorFor(d);
-      return `conic-gradient(from -90deg, ${color}80 0deg ${deg}deg, transparent ${deg}deg 360deg)`;
+      const fillEnd = Math.max(0, Math.min(filled, d)) * deg;
+      return `conic-gradient(from -90deg, ${color}80 0deg ${fillEnd}deg, transparent ${fillEnd}deg 360deg)`;
     }
 
     function buildRodLibrary(maxDen){
@@ -301,7 +302,7 @@
         for(let i=0;i<d;i++){
           const cell = document.createElement('div');
           cell.className = 'circle-cell';
-          cell.innerHTML = `<div class="circle-icon" style="background:${sectorBackground(d)};"></div>`;
+          cell.innerHTML = `<div class="circle-icon" style="background:${sectorBackground(d,1)};"></div>`;
           cell.addEventListener('click', ()=> createCircle(1,d,40,56 + ((pieceCounter+1)%6)*96));
           row.appendChild(cell);
         }
@@ -347,6 +348,17 @@
       updateStatus(`Se agregó la regleta ${formatFraction(n,d)} al tablero.`);
     }
 
+    function renderCircle(circle){
+      const d = Number(circle.dataset.d);
+      const filled = Number(circle.dataset.filled || 1);
+      circle.style.background = d === 1 ? flatColorFor(1) : sectorBackground(d, filled);
+      const label = circle.querySelector('.piece-label');
+      if(label){
+        label.textContent = d === 1 ? '1' : `${filled}/${d}`;
+        label.style.display = toggleLabels.checked ? 'flex' : 'none';
+      }
+    }
+
     function createCircle(n, d, x=40, y=56){
       pieceCounter += 1;
       const circle = document.createElement('div');
@@ -355,16 +367,15 @@
       circle.dataset.id = pieceCounter;
       circle.dataset.n = n;
       circle.dataset.d = d;
+      circle.dataset.filled = n;
       circle.style.left = x + 'px';
       circle.style.top = y + 'px';
-      circle.style.background = d === 1 ? flatColorFor(1) : sectorBackground(d);
 
       const label = document.createElement('div');
       label.className = 'piece-label';
-      label.textContent = formatFraction(n,d);
-      label.style.display = toggleLabels.checked ? 'flex' : 'none';
       circle.appendChild(label);
 
+      renderCircle(circle);
       attachPieceEvents(circle);
       board.appendChild(circle);
       selectPiece(circle);
@@ -424,7 +435,11 @@
       function up(){
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
-        if(piece.dataset.kind === 'rod') snapRodIfClose(piece);
+        if(piece.dataset.kind === 'rod') {
+          snapRodIfClose(piece);
+        } else if(piece.dataset.kind === 'circle') {
+          mergeCircleIfClose(piece);
+        }
       }
 
       window.addEventListener('pointermove', move);
@@ -481,6 +496,45 @@
         activeRod.style.left = pos.x + 'px';
         activeRod.style.top = pos.y + 'px';
       }
+    }
+
+
+    function mergeCircleIfClose(activeCircle){
+      const active = getRectData(activeCircle);
+      const circles = Array.from(board.querySelectorAll('.piece[data-kind="circle"]')).filter(c => c !== activeCircle);
+      let target = null;
+      let bestGap = Infinity;
+
+      circles.forEach(c => {
+        if(c.dataset.d !== activeCircle.dataset.d) return;
+        const other = getRectData(c);
+        const cx1 = active.left + active.width / 2;
+        const cy1 = active.top + active.height / 2;
+        const cx2 = other.left + other.width / 2;
+        const cy2 = other.top + other.height / 2;
+        const dist = Math.hypot(cx1 - cx2, cy1 - cy2);
+        if(dist <= 36 && dist < bestGap){
+          bestGap = dist;
+          target = c;
+        }
+      });
+
+      if(!target) return;
+
+      const d = Number(target.dataset.d);
+      const filledTarget = Number(target.dataset.filled || 1);
+      const filledActive = Number(activeCircle.dataset.filled || 1);
+      const newFilled = Math.min(d, filledTarget + filledActive);
+
+      target.dataset.filled = String(newFilled);
+      renderCircle(target);
+
+      if(selectedPiece === activeCircle){
+        selectedPiece = target;
+        target.classList.add('selected');
+      }
+      activeCircle.remove();
+      updateStatus(`El círculo se completó a ${newFilled}/${d}.`);
     }
 
     function clearBoard(){
