@@ -72,6 +72,9 @@
       pointer-events:none;font-size:14px
     }
     .group-label{
+      flex-direction:column;
+      line-height:1;
+
       position:absolute;
       height:var(--rod-height);
       display:flex;
@@ -305,7 +308,7 @@
 
           const overlay = document.createElement('div');
           overlay.className = 'group-label';
-          overlay.textContent = `${totalNumerator}/${d}`;
+          overlay.innerHTML = `<span>${totalNumerator}</span><span style="width:20px;height:2px;background:#111;margin:2px 0;"></span><span>${d}</span>`;
           overlay.style.left = left + 'px';
           overlay.style.top = parseFloat(first.style.top) + 'px';
           overlay.style.width = width + 'px';
