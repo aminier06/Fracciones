@@ -74,6 +74,7 @@
     .group-label{
       flex-direction:column;
       line-height:1;
+
       position:absolute;
       height:var(--rod-height);
       display:flex;
@@ -315,21 +316,17 @@
         }
       });
     }
-
     function gradientFor(index){
       const pair = colors[index] || ['#93c5fd','#3b82f6'];
       return `linear-gradient(180deg, ${pair[0]}, ${pair[1]})`;
     }
-
     function flatColorFor(index){
       const pair = colors[index] || ['#93c5fd','#3b82f6'];
       return pair[0];
     }
-
     function fractionHTML(d){
       return `<div class="frac"><span class="top">1</span><span class="bar"></span><span class="bottom">${d}</span></div>`;
     }
-
     function sectorBackground(d, filled=1){
       const deg = 360 / d;
       const color = flatColorFor(d);
@@ -348,10 +345,7 @@
       unitCell.className = 'lib-cell';
       unitCell.style.background = gradientFor(1);
       unitCell.textContent = '1 UNIDAD';
-      unitCell.addEventListener('click', ()=> {
-        const pos = findPlacementForRod(1,1);
-        createRod(1,1,pos.x,pos.y);
-      });
+      unitCell.addEventListener('click', ()=> { const pos = findPlacementForRod(1,1); createRod(1,1,pos.x,pos.y); });
 
       unitRow.appendChild(unitCell);
       rodLibrary.appendChild(unitRow);
@@ -366,10 +360,7 @@
           cell.className = 'lib-cell';
           cell.style.background = gradientFor(d);
           cell.innerHTML = fractionHTML(d);
-          cell.addEventListener('click', ()=> {
-            const pos = findPlacementForRod(1,d);
-            createRod(1,d,pos.x,pos.y);
-          });
+          cell.addEventListener('click', ()=> { const pos = findPlacementForRod(1,d); createRod(1,d,pos.x,pos.y); });
           row.appendChild(cell);
         }
         rodLibrary.appendChild(row);
@@ -418,8 +409,10 @@
       }
     }
 
+
     function findPlacementForRod(n, d){
-      const sameRods = Array.from(board.querySelectorAll('.piece[data-kind="rod"]'))
+      const allRods = Array.from(board.querySelectorAll('.piece[data-kind="rod"]'));
+      const sameRods = allRods
         .filter(r => Number(r.dataset.n) === n && Number(r.dataset.d) === d)
         .sort((a,b) => {
           const topDiff = parseFloat(a.style.top) - parseFloat(b.style.top);
@@ -427,12 +420,19 @@
           return parseFloat(a.style.left) - parseFloat(b.style.left);
         });
 
-      if(!sameRods.length) return {x:24, y:56 + ((pieceCounter+1)%8)*56};
+      if(sameRods.length){
+        const last = sameRods[sameRods.length - 1];
+        const x = parseFloat(last.style.left) + last.offsetWidth;
+        const y = parseFloat(last.style.top);
+        return {x, y};
+      }
 
-      const last = sameRods[sameRods.length - 1];
-      const x = parseFloat(last.style.left) + last.offsetWidth;
-      const y = parseFloat(last.style.top);
-      return {x, y};
+      if(!allRods.length){
+        return {x:24, y:56};
+      }
+
+      const maxTop = Math.max(...allRods.map(r => parseFloat(r.style.top)));
+      return {x:24, y:maxTop + 56};
     }
 
     function createRod(n, d, x=24, y=56){
@@ -444,13 +444,11 @@
       rod.dataset.n = n;
       rod.dataset.d = d;
       rod.style.width = (WHOLE * n / d) + 'px';
-
       const maxX = Math.max(0, board.clientWidth - (WHOLE * n / d));
       if(x > maxX){
         x = 24;
         y = y + 56;
       }
-
       rod.style.left = x + 'px';
       rod.style.top = y + 'px';
 
@@ -518,6 +516,7 @@
         updateStatus(`Seleccionada la pieza ${formatFraction(+piece.dataset.n, +piece.dataset.d)}.`);
       }
     }
+
 
     function getConnectedRodGroup(seed){
       const rods = Array.from(board.querySelectorAll('.piece[data-kind="rod"]'));
@@ -630,7 +629,6 @@
           item.piece.style.left = (item.left + dx) + 'px';
           item.piece.style.top = (item.top + dy) + 'px';
         });
-
         if(piece.dataset.kind === 'rod'){
           updateRodGroupLabels();
         }
@@ -650,6 +648,7 @@
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
     }
+
 
     function getRectData(piece){
       const left = parseFloat(piece.style.left);
@@ -702,6 +701,7 @@
         activeRod.style.top = pos.y + 'px';
       }
     }
+
 
     function mergeCircleIfClose(activeCircle){
       const active = getRectData(activeCircle);
