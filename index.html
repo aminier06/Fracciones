@@ -509,6 +509,61 @@
       }
     }
 
+
+    function getConnectedRodGroup(seed){
+      const rods = Array.from(board.querySelectorAll('.piece[data-kind="rod"]'));
+      const d = Number(seed.dataset.d);
+      const group = [seed];
+      const seen = new Set([seed]);
+      let changed = true;
+
+      while(changed){
+        changed = false;
+        for(const rod of rods){
+          if(seen.has(rod)) continue;
+          if(Number(rod.dataset.d) !== d) continue;
+
+          const ry = parseFloat(rod.style.top);
+          const touchesGroup = group.some(g => {
+            const gy = parseFloat(g.style.top);
+            if(Math.abs(ry - gy) > 10) return false;
+            const gl = parseFloat(g.style.left);
+            const gr = gl + g.offsetWidth;
+            const rl = parseFloat(rod.style.left);
+            const rr = rl + rod.offsetWidth;
+            return Math.abs(gr - rl) <= 2 || Math.abs(rr - gl) <= 2 || (rl >= gl && rl <= gr) || (gl >= rl && gl <= rr);
+          });
+
+          if(touchesGroup){
+            group.push(rod);
+            seen.add(rod);
+            changed = true;
+          }
+        }
+      }
+
+      return group.sort((a,b)=> parseFloat(a.style.left) - parseFloat(b.style.left));
+    }
+
+    function clampGroupPosition(group, dx, dy){
+      let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity;
+      group.forEach(piece => {
+        const left = parseFloat(piece.style.left);
+        const top = parseFloat(piece.style.top);
+        minLeft = Math.min(minLeft, left);
+        minTop = Math.min(minTop, top);
+        maxRight = Math.max(maxRight, left + piece.offsetWidth);
+        maxBottom = Math.max(maxBottom, top + piece.offsetHeight);
+      });
+
+      if(minLeft + dx < 0) dx = -minLeft;
+      if(minTop + dy < 0) dy = -minTop;
+      if(maxRight + dx > board.clientWidth) dx = board.clientWidth - maxRight;
+      if(maxBottom + dy > board.clientHeight) dy = board.clientHeight - maxBottom;
+
+      return {dx, dy};
+    }
+
     function attachPieceEvents(piece){
       piece.addEventListener('pointerdown', startDrag);
       piece.addEventListener('click', (e)=>{
@@ -535,18 +590,56 @@
       const piece = e.currentTarget;
       selectPiece(piece);
 
-      const rect = piece.getBoundingClientRect();
       const boardRect = board.getBoundingClientRect();
-      const offsetX = e.clientX - rect.left;
-      const offsetY = e.clientY - rect.top;
+      const startPointerX = e.clientX - boardRect.left;
+      const startPointerY = e.clientY - boardRect.top;
+
+      let dragGroup = [piece];
+      let initialPositions = [];
+
+      if(piece.dataset.kind === 'rod'){
+        dragGroup = getConnectedRodGroup(piece);
+      }
+
+      initialPositions = dragGroup.map(p => ({
+        piece: p,
+        left: parseFloat(p.style.left),
+        top: parseFloat(p.style.top)
+      }));
 
       function move(ev){
-        let x = ev.clientX - boardRect.left - offsetX;
-        let y = ev.clientY - boardRect.top - offsetY;
-        const pos = clampPosition(piece, x, y);
-        piece.style.left = pos.x + 'px';
-        piece.style.top = pos.y + 'px';
+        const currentX = ev.clientX - boardRect.left;
+        const currentY = ev.clientY - boardRect.top;
+        let dx = currentX - startPointerX;
+        let dy = currentY - startPointerY;
+
+        const clamped = clampGroupPosition(dragGroup, dx, dy);
+        dx = clamped.dx;
+        dy = clamped.dy;
+
+        initialPositions.forEach(item => {
+          item.piece.style.left = (item.left + dx) + 'px';
+          item.piece.style.top = (item.top + dy) + 'px';
+        });
+        if(piece.dataset.kind === 'rod'){
+          updateRodGroupLabels();
+        }
       }
+
+      function up(){
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        if(piece.dataset.kind === 'rod') {
+          dragGroup.forEach(r => snapRodIfClose(r));
+          updateRodGroupLabels();
+        } else if(piece.dataset.kind === 'circle') {
+          mergeCircleIfClose(piece);
+        }
+      }
+
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    }
 
       function up(){
         window.removeEventListener('pointermove', move);
