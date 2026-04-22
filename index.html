@@ -16,6 +16,7 @@
       --whole-width:840px;
       --rod-height:44px;
       --grid-step:35px;
+      --snap-distance:22px;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:Arial, Helvetica, sans-serif;background:var(--bg);color:var(--text)}
@@ -48,24 +49,36 @@
         #ffffff;
       overflow:hidden;
     }
-    .whole-guide{
-      position:absolute;left:24px;top:22px;width:var(--whole-width);height:56px;border:2px solid #94a3b8;border-radius:12px;
-      background:linear-gradient(90deg,#f8fafc 0%,#eef2ff 100%);display:flex;align-items:center;justify-content:center;color:#334155;
-      font-weight:700;letter-spacing:.2px
+    .rod{
+      position:absolute;
+      left:24px;
+      top:100px;
+      height:var(--rod-height);
+      border-radius:0;
+      border:1px solid rgba(0,0,0,.45);
+      box-shadow:0 4px 10px rgba(15,23,42,.12);
+      cursor:grab;
+      user-select:none;
+      touch-action:none;
+      overflow:hidden;
     }
-    .rod{position:absolute;left:24px;top:100px;height:var(--rod-height);border-radius:8px;border:1px solid rgba(0,0,0,.2);box-shadow:0 4px 10px rgba(15,23,42,.12);cursor:grab;user-select:none;touch-action:none;overflow:hidden}
     .rod:active{cursor:grabbing}
     .rod .segments{width:100%;height:100%;display:grid}
-    .rod .segments span{border-right:1px solid rgba(0,0,0,.28)}
+    .rod .segments span{border-right:1px solid rgba(0,0,0,.35)}
     .rod .segments span:last-child{border-right:none}
     .rod .text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0f172a;text-shadow:0 1px 0 rgba(255,255,255,.45);pointer-events:none;font-size:14px}
     .rod.selected{outline:3px solid #11182733}
-
     .palette-guide{border:1px solid #dbe4f0;border-radius:14px;padding:12px;background:#fbfdff}
-    .rod-library{display:grid;gap:0;border:2px solid #1f2937;overflow:hidden;border-radius:10px;background:#fff;width:100%}
+    .rod-library{display:grid;gap:0;border:2px solid #1f2937;overflow:hidden;border-radius:0;background:#fff;width:100%}
     .lib-row{display:grid;height:52px;position:relative;border-bottom:2px solid #1f2937}
     .lib-row:last-child{border-bottom:none}
-    .lib-cell{position:relative;border-right:2px solid rgba(31,41,55,.8);display:flex;align-items:center;justify-content:center;font-weight:700;color:#0f172a;text-shadow:0 1px 0 rgba(255,255,255,.4);cursor:pointer;user-select:none}
+    .lib-cell{
+      position:relative;
+      border-right:2px solid rgba(31,41,55,.8);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:#0f172a;text-shadow:0 1px 0 rgba(255,255,255,.4);
+      cursor:pointer;user-select:none;border-radius:0;
+    }
     .lib-cell:last-child{border-right:none}
     .lib-cell:hover{filter:brightness(1.04)}
     .lib-cell::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.05);pointer-events:none}
@@ -74,7 +87,6 @@
     .frac .top{font-size:16px}
     .frac .bar{width:18px;height:2px;background:#111;margin:4px 0}
     .frac .bottom{font-size:16px}
-
     .meter{margin-top:12px;border:1px solid #dbe4f0;border-radius:12px;padding:12px;background:#fbfdff}
     .meter-bar{position:relative;height:20px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:8px 0 6px}
     .meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#60a5fa,#2563eb);transition:width .2s ease}
@@ -82,14 +94,14 @@
     .kbd{display:inline-block;border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:1px 6px;font-size:.85rem;color:#334155}
     .help-list{margin:8px 0 0 18px;padding:0;color:#475569}
     .help-list li{margin:4px 0}
-
+    footer{padding:8px 18px 18px;color:#64748b;font-size:.9rem;text-align:center}
     @media (max-width:1100px){.layout{grid-template-columns:1fr}.panel{position:static;max-height:none}.board{min-height:720px}}
   </style>
 </head>
 <body>
   <header>
     <h1>Simulador de regletas de fracciones</h1>
-    <p>A la derecha tienes un panel fijo con todas las regletas disponibles, organizadas como en una tabla de referencia. Haz clic sobre cualquier pieza para crear una copia en el área de comparación y luego arrástrala al lugar que desees.</p>
+    <p>A la derecha tienes un panel fijo con todas las regletas disponibles. Haz clic sobre cualquier pieza para crear una copia en el área de comparación y luego arrástrala al lugar que desees.</p>
   </header>
 
   <main class="layout">
@@ -98,9 +110,7 @@
         <div class="status" id="statusText">Haz clic en una regleta del panel derecho para llevar una copia al área de comparación.</div>
         <div class="small"><strong>Área de comparación:</strong> usa este espacio para formar el entero, construir equivalencias y comparar fracciones.</div>
       </div>
-      <div class="board" id="board">
-        <div class="whole-guide">Unidad = 1</div>
-      </div>
+      <div class="board" id="board"></div>
     </section>
 
     <aside class="panel">
@@ -116,7 +126,7 @@
       </div>
       <div class="row">
         <button class="primary" id="addWhole">Agregar 1</button>
-        <button id="exampleEq">Ejemplo 1/2 + 1/2</button>
+        
       </div>
       <div class="row">
         <button id="clearBoard">Limpiar tablero</button>
@@ -128,26 +138,26 @@
       </div>
 
       <div class="palette-guide">
-        <div class="small" style="margin-bottom:10px;"><strong>Banco visual:</strong> cada pieza del panel se puede tomar con un clic. El panel se mantiene completo; al usar una pieza, se crea una copia en el tablero.</div>
+        <div class="small" style="margin-bottom:10px;"><strong>Instrucción:</strong> selecciona una regleta para llevar una copia al área de trabajo.</div>
         <div class="rod-library" id="rodLibrary"></div>
       </div>
 
-      <div class="meter">
-        <strong>Composición de la fila activa</strong>
-        <div class="small">Si colocas regletas a una misma altura, el simulador estima la suma de esa fila.</div>
+      
         <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
-        <div id="meterText" class="legend">Suma estimada: 0</div>
+        <div id="meterText" class="legend"></div>
       </div>
 
       <div class="small" style="margin-top:14px;"><strong>Cómo usarlo</strong></div>
       <ul class="help-list small">
         <li>Haz clic en cualquier pieza del panel derecho.</li>
         <li>La copia aparece en el tablero y puedes arrastrarla.</li>
-        <li>Coloca varias a la misma altura para comparar equivalencias.</li>
+        <li>Al acercarla a otra pieza, se alinea automáticamente.</li>
         <li>Pulsa <span class="kbd">Supr</span> o haz doble clic para eliminar una regleta del tablero.</li>
       </ul>
     </aside>
   </main>
+
+  <footer id="copyright"></footer>
 
   <script>
     const board = document.getElementById('board');
@@ -155,10 +165,10 @@
     const maxDenSelect = document.getElementById('maxDen');
     const statusText = document.getElementById('statusText');
     const toggleLabels = document.getElementById('toggleLabels');
-    const meterFill = document.getElementById('meterFill');
-    const meterText = document.getElementById('meterText');
+            const copyright = document.getElementById('copyright');
 
     const WHOLE = 840;
+    const SNAP_DISTANCE = 22;
     let rodCounter = 0;
     let selectedRod = null;
 
@@ -184,15 +194,15 @@
       for(let d=1; d<=maxDen; d++){
         const n = Math.round(value*d);
         if(Math.abs(value - n/d) < tol){
-          const [sn,sd] = simplify(n,d);
-          return formatFraction(sn,sd);
+          const simp = simplify(n,d);
+          return formatFraction(simp[0], simp[1]);
         }
       }
       return value.toFixed(3);
     }
     function gradientFor(index){
-      const [a,b] = colors[index] || ['#93c5fd','#3b82f6'];
-      return `linear-gradient(180deg, ${a}, ${b})`;
+      const pair = colors[index] || ['#93c5fd','#3b82f6'];
+      return `linear-gradient(180deg, ${pair[0]}, ${pair[1]})`;
     }
     function fractionHTML(d){
       return `<div class="frac"><span class="top">1</span><span class="bar"></span><span class="bottom">${d}</span></div>`;
@@ -209,7 +219,7 @@
       unitCell.style.background = gradientFor(1);
       unitCell.textContent = '1 UNIDAD';
       unitCell.title = 'Haz clic para llevar la unidad al tablero';
-      unitCell.addEventListener('click', ()=> createRod(1,1,24,110));
+      unitCell.addEventListener('click', ()=> createRod(1,1,24,56));
       unitRow.appendChild(unitCell);
       rodLibrary.appendChild(unitRow);
 
@@ -223,7 +233,7 @@
           cell.style.background = gradientFor(d);
           cell.innerHTML = fractionHTML(d);
           cell.title = `Haz clic para agregar 1/${d}`;
-          cell.addEventListener('click', ()=> createRod(1,d,24,110 + ((rodCounter+1)%8)*58));
+          cell.addEventListener('click', ()=> createRod(1,d,24,56 + ((rodCounter+1)%8)*56));
           row.appendChild(cell);
         }
         rodLibrary.appendChild(row);
@@ -239,7 +249,7 @@
       }
     }
 
-    function createRod(n, d, x=24, y=null){
+    function createRod(n, d, x=24, y=56){
       rodCounter += 1;
       const rod = document.createElement('div');
       rod.className = 'rod';
@@ -250,7 +260,7 @@
       const width = WHOLE * n / d;
       rod.style.width = width + 'px';
       rod.style.left = x + 'px';
-      rod.style.top = (y ?? (110 + (rodCounter%8)*58)) + 'px';
+      rod.style.top = y + 'px';
 
       const segments = document.createElement('div');
       segments.className = 'segments';
@@ -259,15 +269,14 @@
 
       const text = document.createElement('div');
       text.className = 'text';
-      text.innerHTML = d === 1 ? '1' : fractionHTML(d);
+      text.textContent = formatFraction(n,d);
       text.style.display = toggleLabels.checked ? 'flex' : 'none';
       rod.appendChild(text);
 
       attachRodEvents(rod);
       board.appendChild(rod);
       selectRod(rod);
-      updateStatus(`Regleta ${formatFraction(n,d)} agregada desde el panel derecho.`);
-      updateMeter();
+      updateStatus(`Se agregó la regleta ${formatFraction(n,d)} al tablero.`);
       return rod;
     }
 
@@ -280,18 +289,25 @@
         selectedRod.classList.add('selected');
         updateStatus(`Seleccionada la regleta ${formatFraction(+rod.dataset.n, +rod.dataset.d)}.`);
       }
-      updateMeter();
-    }
+          }
 
     function attachRodEvents(rod){
       rod.addEventListener('pointerdown', startDrag);
-      rod.addEventListener('click', (e)=>{ e.stopPropagation(); selectRod(rod); });
+      rod.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        selectRod(rod);
+      });
       rod.addEventListener('dblclick', ()=>{
         rod.remove();
         if(selectedRod === rod) selectedRod = null;
-        updateStatus('Regleta eliminada del tablero.');
-        updateMeter();
-      });
+        updateStatus('Regleta eliminada.');
+              });
+    }
+
+    function clampRodPosition(rod, x, y){
+      x = Math.max(0, Math.min(board.clientWidth - rod.offsetWidth, x));
+      y = Math.max(0, Math.min(board.clientHeight - rod.offsetHeight, y));
+      return { x, y };
     }
 
     function startDrag(e){
@@ -306,135 +322,135 @@
       function move(ev){
         let x = ev.clientX - boardRect.left - offsetX;
         let y = ev.clientY - boardRect.top - offsetY;
-        x = Math.max(0, Math.min(board.clientWidth - rod.offsetWidth, x));
-        y = Math.max(0, Math.min(board.clientHeight - rod.offsetHeight, y));
-        x = Math.round(x / 7) * 7;
-        y = Math.round(y / 7) * 7;
-        rod.style.left = x + 'px';
-        rod.style.top = y + 'px';
-        updateMeter();
-      }
+        const pos = clampRodPosition(rod, x, y);
+        rod.style.left = pos.x + 'px';
+        rod.style.top = pos.y + 'px';
+              }
 
       function up(){
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
         snapIfClose(rod);
-        updateMeter();
-      }
+              }
 
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
     }
 
+    function getRodRectData(rod){
+      const left = parseFloat(rod.style.left);
+      const top = parseFloat(rod.style.top);
+      return {
+        left,
+        top,
+        right:left + rod.offsetWidth,
+        bottom:top + rod.offsetHeight,
+        width:rod.offsetWidth,
+        height:rod.offsetHeight
+      };
+    }
+
     function snapIfClose(activeRod){
-      const rods = [...board.querySelectorAll('.rod')].filter(r => r !== activeRod);
-      const ay = parseFloat(activeRod.style.top);
-      const ax = parseFloat(activeRod.style.left);
+      let active = getRodRectData(activeRod);
+      const rods = Array.from(board.querySelectorAll('.rod')).filter(r => r !== activeRod);
       let best = null;
+
+      function consider(candidate){
+        if(!candidate) return;
+        if(candidate.gap > SNAP_DISTANCE) return;
+        if(!best || candidate.gap < best.gap){
+          best = candidate;
+        }
+      }
+
       rods.forEach(r => {
-        const ry = parseFloat(r.style.top);
-        const rx = parseFloat(r.style.left);
-        const rw = r.offsetWidth;
-        if(Math.abs(ry - ay) <= 10){
-          const endGap = Math.abs((rx + rw) - ax);
-          if(endGap <= 12){
-            if(!best || endGap < best.gap){ best = {gap:endGap, x:rx + rw, y:ry}; }
-          }
-          const startGap = Math.abs((ax + activeRod.offsetWidth) - rx);
-          if(startGap <= 12){
-            if(!best || startGap < best.gap){ best = {gap:startGap, x:rx - activeRod.offsetWidth, y:ry}; }
-          }
+        const other = getRodRectData(r);
+
+        if(Math.abs(other.top - active.top) <= SNAP_DISTANCE){
+          consider({ gap: Math.abs(other.right - active.left), x: other.right, y: other.top });
+          consider({ gap: Math.abs(other.left - active.right), x: other.left - active.width, y: other.top });
+        }
+
+        if(Math.abs(other.left - active.left) <= SNAP_DISTANCE){
+          consider({ gap: Math.abs(other.bottom - active.top), x: other.left, y: other.bottom });
+          consider({ gap: Math.abs(other.top - active.bottom), x: other.left, y: other.top - active.height });
+        }
+
+        if(Math.abs(other.right - active.right) <= SNAP_DISTANCE){
+          consider({ gap: Math.abs(other.bottom - active.top), x: other.right - active.width, y: other.bottom });
+          consider({ gap: Math.abs(other.top - active.bottom), x: other.right - active.width, y: other.top - active.height });
         }
       });
+
+      const nearestRow = Math.round(active.top / 56) * 56;
+      consider({ gap: Math.abs(nearestRow - active.top), x: active.left, y: nearestRow });
+      consider({ gap: Math.abs(active.left - 24), x: 24, y: active.top });
+
       if(best){
-        activeRod.style.left = best.x + 'px';
-        activeRod.style.top = best.y + 'px';
-      }
-      if(Math.abs(ay - 22) <= 16 && Math.abs(ax - 24) <= 16){
-        activeRod.style.left = '24px';
-        activeRod.style.top = '22px';
+        const pos = clampRodPosition(activeRod, best.x, best.y);
+        activeRod.style.left = pos.x + 'px';
+        activeRod.style.top = pos.y + 'px';
       }
     }
 
-    function updateMeter(){
-      const target = selectedRod || board.querySelector('.rod');
-      if(!target){
-        meterFill.style.width = '0%';
-        meterText.textContent = 'Suma estimada: 0';
-        return;
-      }
-      const y = parseFloat(target.style.top);
-      const rods = [...board.querySelectorAll('.rod')].filter(r => Math.abs(parseFloat(r.style.top) - y) <= 8);
+          const y = parseFloat(target.style.top);
+      const rods = Array.from(board.querySelectorAll('.rod')).filter(r => Math.abs(parseFloat(r.style.top) - y) <= 10);
       rods.sort((a,b)=> parseFloat(a.style.left) - parseFloat(b.style.left));
-      const total = rods.reduce((sum,r)=> sum + (+r.dataset.value), 0);
-      const percent = Math.min(total * 100, 100);
-      meterFill.style.width = percent + '%';
+      const total = rods.reduce((sum,r)=> sum + Number(r.dataset.value), 0);
+      meterFill.style.width = Math.min(total * 100, 100) + '%';
       const comparison = total === 1 ? ' = 1 (entero exacto)' : total < 1 ? ' < 1' : ' > 1';
       meterText.textContent = `Suma estimada: ${approxFraction(total)}${comparison}`;
     }
 
     function alignRods(){
-      const rods = [...board.querySelectorAll('.rod')];
-      rods.sort((a,b)=> (+a.dataset.value) - (+b.dataset.value));
+      const rods = Array.from(board.querySelectorAll('.rod'));
+      rods.sort((a,b)=> Number(a.dataset.value) - Number(b.dataset.value));
       rods.forEach((rod, i)=>{
         rod.style.left = '24px';
-        rod.style.top = (100 + i * 56) + 'px';
+        rod.style.top = (56 + i * 56) + 'px';
       });
-      updateStatus('Las regletas del tablero fueron alineadas a la izquierda.');
-      updateMeter();
-    }
+      updateStatus('Las regletas fueron alineadas a la izquierda.');
+          }
 
     function clearBoard(){
-      [...board.querySelectorAll('.rod')].forEach(r=>r.remove());
+      Array.from(board.querySelectorAll('.rod')).forEach(r=>r.remove());
       selectedRod = null;
-      updateStatus('Tablero limpio. El panel derecho se mantiene completo.');
-      updateMeter();
-    }
+      updateStatus('Tablero limpio.');
+          }
 
-    function loadExampleHalf(){
-      clearBoard();
-      createRod(1,2,24,110);
-      createRod(1,2,24 + WHOLE/2,110);
-      updateStatus('Ejemplo cargado: 1/2 + 1/2 = 1.');
-      updateMeter();
-    }
-
-    document.getElementById('addWhole').addEventListener('click', ()=> createRod(1,1,24,110));
-    document.getElementById('exampleEq').addEventListener('click', loadExampleHalf);
-    document.getElementById('clearBoard').addEventListener('click', clearBoard);
+    
+    document.getElementById('addWhole').addEventListener('click', ()=> createRod(1,1,24,56));
+        document.getElementById('clearBoard').addEventListener('click', clearBoard);
     document.getElementById('alignBtn').addEventListener('click', alignRods);
 
     toggleLabels.addEventListener('change', ()=>{
-      board.querySelectorAll('.rod .text').forEach(el => el.style.display = toggleLabels.checked ? 'flex' : 'none');
+      board.querySelectorAll('.rod .text').forEach(el => {
+        el.style.display = toggleLabels.checked ? 'flex' : 'none';
+      });
     });
 
-    maxDenSelect.addEventListener('change', ()=> buildLibrary(+maxDenSelect.value));
+    maxDenSelect.addEventListener('change', ()=> buildLibrary(Number(maxDenSelect.value)));
 
     board.addEventListener('click', ()=>{
       if(selectedRod) selectedRod.classList.remove('selected');
       selectedRod = null;
-      updateStatus('Sin selección. Puedes tomar otra regleta del panel derecho.');
-      updateMeter();
-    });
+      updateStatus('Sin selección.');
+          });
 
     window.addEventListener('keydown', (e)=>{
       if((e.key === 'Delete' || e.key === 'Backspace') && selectedRod){
         selectedRod.remove();
         selectedRod = null;
-        updateStatus('Regleta eliminada del tablero.');
-        updateMeter();
-      }
+        updateStatus('Regleta eliminada.');
+              }
     });
 
-    buildLibrary(+maxDenSelect.value);
-    createRod(1,1,24,110);
-    createRod(1,2,24,170);
-    createRod(1,4,24,230);
-    createRod(1,4,24 + WHOLE/4,230);
-    createRod(1,4,24 + 2*WHOLE/4,230);
-    createRod(1,4,24 + 3*WHOLE/4,230);
-    updateStatus('Se cargó un ejemplo inicial. A la derecha tienes todas las regletas disponibles para seguir comparando.');
-    updateMeter();
-  </script>
+    copyright.textContent = `© ${new Date().getFullYear()} Aneudy Minier | Simulador de Regletas de Fracciones`;
+
+    buildLibrary(Number(maxDenSelect.value));
+    createRod(1,1,24,56);
+    
+    updateStatus('Se cargó un ejemplo inicial con 1, 1/2 y 4 cuartos.');
+      </script>
 </body>
 </html>
