@@ -376,7 +376,16 @@
       const unitCell = document.createElement('div');
       unitCell.className = 'circle-cell';
       unitCell.innerHTML = `<div class="circle-icon" style="background:${flatColorFor(1)};"></div>`;
-      unitCell.addEventListener('click', ()=> createCircle(1,1,40,56));
+      unitCell.addEventListener('click', ()=>{
+        const existing = Array.from(board.querySelectorAll('.piece[data-kind="circle"]'))
+          .find(c => Number(c.dataset.d) === 1);
+        if(existing){
+          selectPiece(existing);
+          updateStatus('Ya existe el círculo de unidad en el tablero.');
+        } else {
+          createCircle(1,1,40,56);
+        }
+      });
       unitRow.appendChild(unitCell);
       circleLibrary.appendChild(unitRow);
 
@@ -393,7 +402,20 @@
           const cell = document.createElement('div');
           cell.className = 'circle-cell';
           cell.innerHTML = `<div class="circle-icon" style="background:${sectorBackground(d,1)};"></div>`;
-          cell.addEventListener('click', ()=> createCircle(1,d,40,56 + ((pieceCounter+1)%6)*96));
+          cell.addEventListener('click', ()=>{
+            const existing = Array.from(board.querySelectorAll('.piece[data-kind="circle"]'))
+              .find(c => Number(c.dataset.d) === d);
+            if(existing){
+              const currentFilled = Number(existing.dataset.filled || 1);
+              const newFilled = Math.min(d, currentFilled + 1);
+              existing.dataset.filled = String(newFilled);
+              renderCircle(existing);
+              selectPiece(existing);
+              updateStatus(`El círculo se acumuló a ${newFilled}/${d}.`);
+            } else {
+              createCircle(1,d,40,56 + ((pieceCounter+1)%6)*96);
+            }
+          });
           row.appendChild(cell);
         }
         circleLibrary.appendChild(row);
@@ -742,7 +764,7 @@
     }
 
     function clearBoard(){
-      Array.from(board.querySelectorAll('.piece')).forEach(p => p.remove());
+      Array.from(board.querySelectorAll('.piece, .group-label')).forEach(p => p.remove());
       selectedPiece = null;
       updateStatus('Tablero limpio.');
     }
